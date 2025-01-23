@@ -1,45 +1,128 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Morocco Explorer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        #exploreBtn {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .loading-state {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .spinner-border {
+            width: 1.2rem;
+            height: 1.2rem;
+            border-width: 0.15em;
+        }
+        @keyframes pulse-animation {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .pulse {
+            animation: pulse-animation 1.5s infinite;
+        }
+        .activity-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .activity-card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
 </head>
-<body>
-    <div class="container">
-        <h1>Morocco Explorer</h1>
-        <div id="location"></div>
-        <div id="weather"></div>
-        <div id="activities" class="activity-container"></div>
-        <button onclick="getRecommendations()">Discover Random Moroccan City</button>
+<body class="bg-light">
+    <div class="container py-5">
+        <header class="text-center mb-5">
+            <h1 class="display-4 fw-bold text-primary mb-3">🇲🇦 Morocco Explorer</h1>
+            <p class="lead text-muted">Discover hidden gems across Moroccan cities</p>
+            <button class="btn btn-primary btn-lg px-5 mt-3" 
+                    id="exploreBtn"
+                    onclick="getRecommendations()">
+                <span class="normal-state">Explore Random City</span>
+                <span class="loading-state d-none">
+                    <span class="spinner-border spinner-border-sm" role="status"></span>
+                    Discovering treasures...
+                </span>
+            </button>
+        </header>
+
+        <div id="results" class="d-none">
+            <div class="card shadow-lg mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h2 id="location" class="h4 mb-0"></h2>
+                </div>
+                <div class="card-body">
+                    <div id="weather" class="alert alert-info mb-4"></div>
+                    <div id="activities" class="row g-4"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         async function getRecommendations() {
+            const btn = document.getElementById('exploreBtn');
+            const resultsDiv = document.getElementById('results');
+            
             try {
+                // Show loading state
+                btn.classList.add('disabled', 'pulse');
+                btn.querySelector('.normal-state').classList.add('d-none');
+                btn.querySelector('.loading-state').classList.remove('d-none');
+                resultsDiv.classList.add('d-none');
+
+                // Fetch recommendations
                 const response = await fetch('http://localhost:8000/recommendations');
                 const data = await response.json();
+                
+                // Display results
                 displayResults(data);
+                resultsDiv.classList.remove('d-none');
+
             } catch (error) {
-                alert("Error fetching recommendations: " + error.message);
+                // Show error alert
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-danger alert-dismissible fade show mt-3';
+                alert.innerHTML = `
+                    <strong>Error!</strong> Failed to load recommendations. Please try again.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.container').appendChild(alert);
+            } finally {
+                // Reset button state
+                btn.classList.remove('disabled', 'pulse');
+                btn.querySelector('.normal-state').classList.remove('d-none');
+                btn.querySelector('.loading-state').classList.add('d-none');
             }
         }
 
         function displayResults(data) {
-            document.getElementById('location').innerHTML = `
-                <h2>Exploring ${data.city}</h2>
-            `;
-
+            document.getElementById('location').innerHTML = `Exploring ${data.city}`;
+            
             document.getElementById('weather').innerHTML = `
-                <p>Current weather: ${data.weather.weather[0].description}, 
-                ${data.weather.main.temp}°C</p>
+                <i class="bi bi-cloud-sun me-2"></i>
+                Current weather: ${data.weather.weather[0].description}, 
+                ${data.weather.main.temp}°C
             `;
 
             const activitiesDiv = document.getElementById('activities');
             activitiesDiv.innerHTML = data.activities.map(activity => `
-                <div class="activity-card">
-                    <h3>${activity.name}</h3>
-                    <p>${activity.description}</p>
-                    <p class="activity-type">${activity.type.toUpperCase()}</p>
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="card h-100 shadow-sm activity-card">
+                        <div class="card-body">
+                            <h3 class="h5 card-title text-primary">${activity.name}</h3>
+                            <p class="card-text text-muted">${activity.description}</p>
+                            <span class="badge bg-secondary">${activity.type.toUpperCase()}</span>
+                        </div>
+                    </div>
                 </div>
             `).join('');
         }
