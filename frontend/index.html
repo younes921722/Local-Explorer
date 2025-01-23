@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Morocco Explorer</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Morocco Explorer</h1>
+        <div id="location"></div>
+        <div id="weather"></div>
+        <div id="activities" class="activity-container"></div>
+        <button onclick="getRecommendations()">Discover Random Moroccan City</button>
+    </div>
+
+    <script>
+        async function getRecommendations() {
+            try {
+                const response = await fetch('http://localhost:8000/recommendations');
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                alert("Error fetching recommendations: " + error.message);
+            }
+        }
+
+        function displayResults(data) {
+            document.getElementById('location').innerHTML = `
+                <h2>Exploring ${data.city}</h2>
+            `;
+
+            document.getElementById('weather').innerHTML = `
+                <p>Current weather: ${data.weather.weather[0].description}, 
+                ${data.weather.main.temp}°C</p>
+            `;
+
+            const activitiesDiv = document.getElementById('activities');
+            activitiesDiv.innerHTML = data.activities.map(activity => `
+                <div class="activity-card">
+                    <h3>${activity.name}</h3>
+                    <p>${activity.description}</p>
+                    <p class="activity-type">${activity.type.toUpperCase()}</p>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
