@@ -1,5 +1,7 @@
 import google.generativeai as genai
 import requests
+import json
+import logging
 
 moroccan_cities = [
     {"name": "Casablanca", "lat": 33.5731, "lon": -7.5898},
@@ -23,24 +25,56 @@ def get_weather(lat: float, lon: float, api_key: str):
     response = requests.get(url)
     return response.json()
 
+# def generate_activities(weather_data: dict, city_name: str, api_key: str):
+#     genai.configure(api_key=api_key)
+#     model = genai.GenerativeModel('gemini-pro')
+    
+#     prompt = f"""
+#     Suggest 6 varied activities in {city_name}, Morocco suitable for:
+#     - Weather: {weather_data['weather'][0]['description']}
+#     - Temperature: {weather_data['main']['temp']}°C
+#     Return only a JSON array of activity objects with 'name', 'type', and 'description' fields.
+#     Example format:
+#     [
+#         {{"name": "Visit Hassan II Mosque", "type": "cultural", "description": "Explore this iconic seaside mosque..."}},
+#         {{"name": "Jardin Majorelle", "type": "outdoor", "description": "Stroll through the vibrant blue gardens..."}}
+#     ]
+#     """
+    
+#     response = model.generate_content(prompt)
+#     return parse_activities(response.text)
+
 def generate_activities(weather_data: dict, city_name: str, api_key: str):
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel('gemini-pro')
     
     prompt = f"""
-    Suggest 5 varied activities in {city_name}, Morocco suitable for:
+    Suggest 6 varied activities in {city_name}, Morocco suitable for:
     - Weather: {weather_data['weather'][0]['description']}
     - Temperature: {weather_data['main']['temp']}°C
-    Return only a JSON array of activity objects with 'name', 'type', and 'description' fields.
-    Example format:
+    Return a JSON array of activity objects with these EXACT fields:
+    - name: Activity name
+    - type: Activity category (cultural, outdoor, food, etc)
+    - description: Short description (50-80 words)
+    - location: Specific address/landmark in {city_name}
+
+    Example:
     [
-        {{"name": "Visit Hassan II Mosque", "type": "cultural", "description": "Explore this iconic seaside mosque..."}},
-        {{"name": "Jardin Majorelle", "type": "outdoor", "description": "Stroll through the vibrant blue gardens..."}}
+        {{
+            "name": "Hassan II Mosque",
+            "type": "cultural",
+            "description": "Visit this iconic seaside mosque with the world's tallest minaret.",
+            "location": "Boulevard de la Corniche, Casablanca"
+        }}
     ]
     """
     
-    response = model.generate_content(prompt)
-    return parse_activities(response.text)
+    try:
+        response = model.generate_content(prompt)
+        return parse_activities(response.text)
+    except Exception as e:
+        logging.error(f"Error generating activities: {str(e)}")
+        return []
 
 def parse_activities(text: str):
     # Implement parsing logic based on Gemini's response format
